@@ -26,8 +26,16 @@ ENV NODE_VERSION=16.14.2
 RUN groupadd -g $GID $USER && useradd --system -m -g $USER --uid $UID $USER && \
     apt update && \
     apt install -y --no-install-recommends curl ca-certificates tzdata libicu70 libatomic1 && \
+    apt install -y --no-install-recommends build-essential chrpath libssl-dev libxft-dev wget && \
+    apt install -y --no-install-recommends libfreetype6 libfreetype6-dev libfontconfig1 libfontconfig1-dev && \
     apt clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    export PHANTOMJS="phantomjs-2.1.1-linux-x86_64" && \
+    wget https://bitbucket.org/ariya/phantomjs/downloads/$PHANTOMJS.tar.bz2 && \
+    tar xvjf $PHANTOMJS.tar.bz2 && \
+    mv $PHANTOMJS /usr/local/share && \
+    ln -sf /usr/local/share/$PHANTOMJS/bin/phantomjs /usr/local/bin && \
+    rm -rf $PHANTOMJS.tar.bz2
 
 RUN mkdir /usr/local/nvm
 ENV PATH="/usr/local/nvm/versions/node/v${NODE_VERSION}/bin/:${PATH}"
