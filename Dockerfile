@@ -21,10 +21,18 @@ RUN groupadd -g $GID $USER && useradd --system -m -g $USER --uid $UID $USER && \
     apt install -y --no-install-recommends curl ca-certificates tzdata && \
     curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && \
     apt install -y --no-install-recommends nodejs && \
+    apt install -y --no-install-recommends build-essential chrpath libssl-dev libxft-dev wget && \
+    apt install -y --no-install-recommends libfreetype6 libfreetype6-dev libfontconfig1 libfontconfig1-dev && \
     npm -g install npm n && \
     n 16.14.2 && \
     apt clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    export PHANTOMJS="phantomjs-2.1.1-linux-x86_64" && \
+    wget https://bitbucket.org/ariya/phantomjs/downloads/$PHANTOMJS.tar.bz2 && \
+    tar xvjf $PHANTOMJS.tar.bz2 && \
+    mv $PHANTOMJS /usr/local/share && \
+    ln -sf /usr/local/share/$PHANTOMJS/bin/phantomjs /usr/local/bin && \
+    rm -rf $PHANTOMJS.tar.bz2
 
 
 # Build frontend
