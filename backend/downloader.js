@@ -133,37 +133,36 @@ async function fixDownloadState() {
 async function checkDownloads() {
     if (!should_check_downloads) return;
 
+    const downloads = await db_api.getRecords('download_queue');
+    downloads.sort((download1, download2) => download1.timestamp_start - download2.timestamp_start);
+
     await mutex.runExclusive(async () => {
-        if (!should_check_downloads) return;
-
-        const downloads = await db_api.getRecords('download_queue');
-        downloads.sort((download1, download2) => download1.timestamp_start - download2.timestamp_start);
-
         // avoid checking downloads unnecessarily, but double check that should_check_downloads is still true
         const running_downloads = downloads.filter(download => !download['paused'] && !download['finished']);
         if (running_downloads.length === 0) {
             should_check_downloads = false;
             logger.verbose('Disabling checking downloads as none are available.');
         }
+        return;
+    });
 
-        let running_downloads_count = downloads.filter(download => download['running']).length;
-        const waiting_downloads = downloads.filter(download => !download['paused'] && download['finished_step'] && !download['finished']);
-        for (let i = 0; i < waiting_downloads.length; i++) {
-            const waiting_download = waiting_downloads[i];
-            const max_concurrent_downloads = config_api.getConfigItem('ytdl_max_concurrent_downloads');
-            if (max_concurrent_downloads < 0 || running_downloads_count >= max_concurrent_downloads) break;
+    let running_downloads_count = downloads.filter(download => download['running']).length;
+    const waiting_downloads = downloads.filter(download => !download['paused'] && download['finished_step'] && !download['finished']);
+    for (let i = 0; i < waiting_downloads.length; i++) {
+        const waiting_download = waiting_downloads[i];
+        const max_concurrent_downloads = config_api.getConfigItem('ytdl_max_concurrent_downloads');
+        if (max_concurrent_downloads < 0 || running_downloads_count >= max_concurrent_downloads) break;
 
-            if (waiting_download['finished_step'] && !waiting_download['finished']) {
-                // move to next step
-                running_downloads_count++;
-                if (waiting_download['step_index'] === 0) {
-                    collectInfo(waiting_download['uid']);
-                } else if (waiting_download['step_index'] === 1) {
-                    downloadQueuedFile(waiting_download['uid']);
-                }
+        if (waiting_download['finished_step'] && !waiting_download['finished']) {
+            // move to next step
+            running_downloads_count++;
+            if (waiting_download['step_index'] === 0) {
+                collectInfo(waiting_download['uid']);
+            } else if (waiting_download['step_index'] === 1) {
+                downloadQueuedFile(waiting_download['uid']);
             }
         }
-    });
+    }
 }
 
 async function collectInfo(download_uid) {
