@@ -251,6 +251,17 @@ async function startServer() {
     app.listen(backendPort,function(){
         logger.info(`YoutubeDL-Material ${CONSTS['CURRENT_VERSION']} started on PORT ${backendPort}`);
     });
+
+    resumeAllDownloads();
+}
+
+async function resumeAllDownloads() {
+    let success = true;
+    const all_paused_downloads = await db_api.getRecords('download_queue', {paused: true, user_uid: null, error: null});
+    for (let i = 0; i < all_paused_downloads.length; i++) {
+        success &= await downloader_api.resumeDownload(all_paused_downloads[i]['uid']);
+    }
+    return success;
 }
 
 async function updateServer(tag) {
